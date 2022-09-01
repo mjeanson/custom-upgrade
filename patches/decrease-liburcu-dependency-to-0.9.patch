@@ -1,0 +1,159 @@
+From e2bacc390b1e7861060c94d42dbe133494d8cd18 Mon Sep 17 00:00:00 2001
+From: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Date: Mon, 26 Apr 2021 13:13:26 -0400
+Subject: [PATCH] Decrease liburcu dependency to 0.9+
+
+Signed-off-by: Mathieu Desnoyers <mathieu.desnoyers@efficios.com>
+Change-Id: I99536f2ef36487272a8e8ce96fed401681205109
+---
+ configure.ac                       |  6 +++---
+ include/lttng/tracepoint-rcu.h     |  6 +++---
+ liblttng-ust/lttng-ust-comm.c      |  6 +++---
+ liblttng-ust/tracepoint-internal.h |  2 +-
+ liblttng-ust/tracepoint.c          | 14 +++++++-------
+ 5 files changed, 17 insertions(+), 17 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 7fe30a3c..b738f2f5 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -275,10 +275,10 @@ AC_COMPILE_IFELSE([AC_LANG_SOURCE([[
+ ])
+ 
+ # urcu - check that URCU lib is available to compilation
+-AC_CHECK_LIB([urcu-bp], [urcu_bp_synchronize_rcu], [:], [AC_MSG_ERROR([Cannot find liburcu-bp 0.11 or newer. Use [LDFLAGS]=-Ldir to specify its location.])])
++AC_CHECK_LIB([urcu-bp], [synchronize_rcu_bp], [:], [AC_MSG_ERROR([Cannot find liburcu-bp lib. Use [LDFLAGS]=-Ldir to specify its location.])])
+ 
+-# urcu - check that URCU lib is at least version 0.11
+-AC_CHECK_LIB([urcu-bp], [urcu_bp_call_rcu], [:], [AC_MSG_ERROR([liburcu 0.11 or newer is needed, please update your version or use [LDFLAGS]=-Ldir to specify the right location.])])
++# urcu - check that URCU lib is at least version 0.6
++AC_CHECK_LIB([urcu-bp], [call_rcu_bp], [:], [AC_MSG_ERROR([liburcu 0.6 or newer is needed, please update your version or use [LDFLAGS]=-Ldir to specify the right location.])])
+ 
+ # numa.h integration
+ AS_IF([test "x$NO_NUMA" = "x1"],[
+diff --git a/include/lttng/tracepoint-rcu.h b/include/lttng/tracepoint-rcu.h
+index 95d60493..0e084853 100644
+--- a/include/lttng/tracepoint-rcu.h
++++ b/include/lttng/tracepoint-rcu.h
+@@ -27,10 +27,10 @@
+ 
+ #ifdef _LGPL_SOURCE
+ 
+-#include <urcu/urcu-bp.h>
++#include <urcu-bp.h>
+ 
+-#define tp_rcu_read_lock_bp	urcu_bp_read_lock
+-#define tp_rcu_read_unlock_bp	urcu_bp_read_unlock
++#define tp_rcu_read_lock_bp	rcu_read_lock_bp
++#define tp_rcu_read_unlock_bp	rcu_read_unlock_bp
+ #define tp_rcu_dereference_bp	rcu_dereference
+ #define TP_RCU_LINK_TEST()	1
+ 
+diff --git a/liblttng-ust/lttng-ust-comm.c b/liblttng-ust/lttng-ust-comm.c
+index f3222699..122d1279 100644
+--- a/liblttng-ust/lttng-ust-comm.c
++++ b/liblttng-ust/lttng-ust-comm.c
+@@ -2135,7 +2135,7 @@ void ust_before_fork(sigset_t *save_sigset)
+ 	pthread_mutex_lock(&ust_fork_mutex);
+ 
+ 	ust_lock_nocheck();
+-	urcu_bp_before_fork();
++	rcu_bp_before_fork();
+ 	lttng_ust_lock_fd_tracker();
+ 	lttng_perf_lock();
+ }
+@@ -2163,7 +2163,7 @@ void ust_after_fork_parent(sigset_t *restore_sigset)
+ 	if (URCU_TLS(lttng_ust_nest_count))
+ 		return;
+ 	DBG("process %d", getpid());
+-	urcu_bp_after_fork_parent();
++	rcu_bp_after_fork_parent();
+ 	/* Release mutexes and reenable signals */
+ 	ust_after_fork_common(restore_sigset);
+ }
+@@ -2189,7 +2189,7 @@ void ust_after_fork_child(sigset_t *restore_sigset)
+ 	ust_context_vgids_reset();
+ 	DBG("process %d", getpid());
+ 	/* Release urcu mutexes */
+-	urcu_bp_after_fork_child();
++	rcu_bp_after_fork_child();
+ 	lttng_ust_cleanup(0);
+ 	/* Release mutexes and reenable signals */
+ 	ust_after_fork_common(restore_sigset);
+diff --git a/liblttng-ust/tracepoint-internal.h b/liblttng-ust/tracepoint-internal.h
+index 1e6f92b6..298f78e7 100644
+--- a/liblttng-ust/tracepoint-internal.h
++++ b/liblttng-ust/tracepoint-internal.h
+@@ -50,7 +50,7 @@ extern void __tracepoint_probe_prune_release_queue(void);
+  */
+ static inline void tracepoint_synchronize_unregister(void)
+ {
+-	urcu_bp_synchronize_rcu();
++	synchronize_rcu_bp();
+ }
+ 
+ extern void init_tracepoint(void);
+diff --git a/liblttng-ust/tracepoint.c b/liblttng-ust/tracepoint.c
+index b109fe30..efd95bc1 100644
+--- a/liblttng-ust/tracepoint.c
++++ b/liblttng-ust/tracepoint.c
+@@ -26,7 +26,7 @@
+ #include <stdio.h>
+ 
+ #include <urcu/arch.h>
+-#include <urcu/urcu-bp.h>
++#include <urcu-bp.h>
+ #include <urcu/hlist.h>
+ #include <urcu/uatomic.h>
+ #include <urcu/compiler.h>
+@@ -166,7 +166,7 @@ static void release_probes(void *old)
+ 	if (old) {
+ 		struct tp_probes *tp_probes = caa_container_of(old,
+ 			struct tp_probes, probes[0]);
+-		urcu_bp_synchronize_rcu();
++		synchronize_rcu();
+ 		free(tp_probes);
+ 	}
+ }
+@@ -750,7 +750,7 @@ void __tracepoint_probe_prune_release_queue(void)
+ 	release_queue_need_update = 0;
+ 
+ 	/* Wait for grace period between all sync_callsites and free. */
+-	urcu_bp_synchronize_rcu();
++	synchronize_rcu();
+ 
+ 	cds_list_for_each_entry_safe(pos, next, &release_probes, u.list) {
+ 		cds_list_del(&pos->u.list);
+@@ -841,7 +841,7 @@ void tracepoint_probe_update_all(void)
+ 
+ 	tracepoint_update_probes();
+ 	/* Wait for grace period between update_probes and free. */
+-	urcu_bp_synchronize_rcu();
++	synchronize_rcu();
+ 	cds_list_for_each_entry_safe(pos, next, &release_probes, u.list) {
+ 		cds_list_del(&pos->u.list);
+ 		free(pos);
+@@ -987,17 +987,17 @@ void exit_tracepoint(void)
+ 
+ void tp_rcu_read_lock_bp(void)
+ {
+-	urcu_bp_read_lock();
++	rcu_read_lock_bp();
+ }
+ 
+ void tp_rcu_read_unlock_bp(void)
+ {
+-	urcu_bp_read_unlock();
++	rcu_read_unlock_bp();
+ }
+ 
+ void *tp_rcu_dereference_sym_bp(void *p)
+ {
+-	return urcu_bp_dereference(p);
++	return rcu_dereference_bp(p);
+ }
+ 
+ /*
+-- 
+2.34.1
+

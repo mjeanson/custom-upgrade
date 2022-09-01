@@ -1,0 +1,4 @@
+Run `make tests`.
+
+To install the build dependencies on Ubuntu 18.04, run
+`scripts/install-deps.sh`, sudo access is required.

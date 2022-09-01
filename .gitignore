@@ -1,0 +1,13 @@
+# SPDX-FileCopyrightText: 2022 EfficiOS Inc.
+#
+# SPDX-License-Identifier: MIT
+
+*.o
+
+/.venv
+/build
+/src/upstream
+/install
+/sysroots
+/apps
+/tap
