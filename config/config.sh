@@ -33,7 +33,7 @@ BABELTRACE_BUILD_DIR="$BUILD_DIR/babeltrace"
 BABELTRACE_INSTALL_DIR="$INSTALL_DIR/babeltrace"
 
 VANILLA_UST_REPO_URL="https://github.com/lttng/lttng-ust.git"
-CUSTOM_UST_REPO_URL="https://github.com/mjeanson/lttng-ust.git"
+CUSTOM_UST_REPO_URL="https://github.com/compudj/lttng-ust-dev.git"
 CUSTOM_UST_BRANCH="2.13-custom-upgrade"
 UST_SRC_DIR="$SRC_DIR/lttng-ust"
 UST_BUILD_DIR="$BUILD_DIR/lttng-ust"
